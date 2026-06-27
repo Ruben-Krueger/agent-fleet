@@ -1,23 +1,132 @@
 import { createTool } from '@mastra/core/tools';
+import { getJson } from 'serpapi';
 import { z } from 'zod';
 
+const FlightSegmentSchema = z.object({
+  airline: z.string(),
+  flightNumber: z.string(),
+  departure: z.string(),
+  arrival: z.string(),
+  departureAirport: z.string(),
+  arrivalAirport: z.string(),
+  durationMinutes: z.number(),
+});
+
+const FlightOfferSchema = z.object({
+  price: z.number(),
+  totalDurationMinutes: z.number(),
+  stops: z.number(),
+  segments: z.array(FlightSegmentSchema),
+  carbonEmissionsKg: z.number().optional(),
+});
+
+const FlightSearchResultSchema = z.object({
+  bestFlights: z.array(FlightOfferSchema),
+  otherFlights: z.array(FlightOfferSchema),
+  priceInsights: z
+    .object({
+      lowestPrice: z.number().optional(),
+      priceLevel: z.string().optional(),
+      typicalRangeLow: z.number().optional(),
+      typicalRangeHigh: z.number().optional(),
+    })
+    .optional(),
+});
 
 export const flightTool = createTool({
-  id: 'get-weather',
-  description: 'Get the flight data for a location',
+  id: 'search-flights',
+  description:
+    'Search for flights between two airports using Google Flights. Returns best and other flight options with prices, durations, and stops.',
   inputSchema: z.object({
-    location: z.string().describe('City name'),
+    originCode: z.string().describe('Origin airport IATA code (e.g. JFK, LAX)'),
+    destinationCode: z.string().describe('Destination airport IATA code (e.g. CDG, NRT)'),
+    outboundDate: z.string().describe('Departure date in YYYY-MM-DD format'),
+    returnDate: z
+      .string()
+      .optional()
+      .describe('Return date in YYYY-MM-DD format. Omit for one-way flights.'),
+    adults: z.number().int().min(1).default(1).describe('Number of adult passengers'),
+    travelClass: z
+      .enum(['1', '2', '3', '4'])
+      .default('1')
+      .describe('1=Economy, 2=Premium Economy, 3=Business, 4=First'),
+    maxStops: z
+      .enum(['0', '1', '2'])
+      .optional()
+      .describe('0=nonstop only, 1=1 stop max, 2=2 stops max'),
   }),
-  outputSchema: z.object({
-    temperature: z.number(),
-  }),
-  execute: async (inputData) => {
-    return await getFlight(inputData.location);
+  outputSchema: FlightSearchResultSchema,
+  execute: async (input) => {
+    return await searchFlights(input);
   },
 });
 
-const getFlight = async (location: string) => {
-  return null
+type FlightSearchInput = {
+  originCode: string;
+  destinationCode: string;
+  outboundDate: string;
+  returnDate?: string;
+  adults?: number;
+  travelClass?: '1' | '2' | '3' | '4';
+  maxStops?: '0' | '1' | '2';
 };
 
+const searchFlights = async (input: FlightSearchInput) => {
+  const apiKey = process.env.SERPAPI_API_KEY;
+  if (!apiKey) throw new Error('SERPAPI_API_KEY environment variable is not set');
 
+  const params: Record<string, string | number> = {
+    engine: 'google_flights',
+    api_key: apiKey,
+    departure_id: input.originCode.toUpperCase(),
+    arrival_id: input.destinationCode.toUpperCase(),
+    outbound_date: input.outboundDate,
+    type: input.returnDate ? '1' : '2',
+    adults: input.adults ?? 1,
+    travel_class: input.travelClass ?? '1',
+  };
+
+  if (input.returnDate) params.return_date = input.returnDate;
+  if (input.maxStops !== undefined) params.stops = input.maxStops;
+
+  const data = await getJson(params);
+
+  const mapOffer = (flight: Record<string, unknown>): z.infer<typeof FlightOfferSchema> => {
+    const segments = ((flight.flights as Record<string, unknown>[]) ?? []).map(seg => ({
+      airline: (seg.airline as string) ?? '',
+      flightNumber: (seg.flight_number as string) ?? '',
+      departure: (seg.departure_airport as Record<string, string>)?.time ?? '',
+      arrival: (seg.arrival_airport as Record<string, string>)?.time ?? '',
+      departureAirport: (seg.departure_airport as Record<string, string>)?.id ?? '',
+      arrivalAirport: (seg.arrival_airport as Record<string, string>)?.id ?? '',
+      durationMinutes: (seg.duration as number) ?? 0,
+    }));
+
+    const carbon = flight.carbon_emissions as Record<string, number> | undefined;
+
+    return {
+      price: (flight.price as number) ?? 0,
+      totalDurationMinutes: (flight.total_duration as number) ?? 0,
+      stops: Math.max(0, segments.length - 1),
+      segments,
+      carbonEmissionsKg: carbon?.this_flight
+        ? Math.round(carbon.this_flight / 1000)
+        : undefined,
+    };
+  };
+
+  const insights = data.price_insights as Record<string, unknown> | undefined;
+
+  return {
+    bestFlights: ((data.best_flights as Record<string, unknown>[]) ?? []).map(mapOffer),
+    otherFlights: ((data.other_flights as Record<string, unknown>[]) ?? []).map(mapOffer),
+    priceInsights: insights
+      ? {
+          lowestPrice: insights.lowest_price as number | undefined,
+          priceLevel: insights.price_level as string | undefined,
+          typicalRangeLow: (insights.typical_price_range as number[] | undefined)?.[0],
+          typicalRangeHigh: (insights.typical_price_range as number[] | undefined)?.[1],
+        }
+      : undefined,
+  };
+};
