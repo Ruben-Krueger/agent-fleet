@@ -6,5 +6,10 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   {
     ignores: ["node_modules/**", "dist/**", ".mastra/**"],
+  },
+  {
+    rules: {
+      "no-multiple-empty-lines": ["error", { max: 1, maxEOF: 0, maxBOF: 0 }],
+    },
   }
 );
