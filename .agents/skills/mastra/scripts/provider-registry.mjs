@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-import { readFileSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -13,7 +13,7 @@ function findRegistryPath() {
   for (let i = 0; i < 10; i++) {
     try {
       const p = join(dir, rel);
-      readFileSync(p, "utf-8");
+      readFileSync(p, 'utf-8');
       return p;
     } catch {
       dir = dirname(dir);
@@ -26,7 +26,7 @@ function findRegistryPath() {
 function loadRegistry() {
   const path = findRegistryPath();
   try {
-    return JSON.parse(readFileSync(path, "utf-8"));
+    return JSON.parse(readFileSync(path, 'utf-8'));
   } catch (e) {
     console.error(`Error: Could not load provider registry at ${path}`);
     console.error(e.message);
@@ -48,7 +48,7 @@ function extractVersion(name) {
   let match;
   while ((match = regex.exec(name)) !== null) {
     const numStr = match[1];
-    const suffix = match[2] || "";
+    const suffix = match[2] || '';
     candidates.push({ numStr, suffix, index: match.index });
   }
   if (candidates.length === 0) return null;
@@ -71,11 +71,14 @@ function extractVersion(name) {
     // Skip trailing date-like patterns (MM-DD) in the latter half of the name
     if (
       parts.length === 2 &&
-      parts[0] >= 1 && parts[0] <= 12 &&
-      parts[1] >= 1 && parts[1] <= 31 &&
+      parts[0] >= 1 &&
+      parts[0] <= 12 &&
+      parts[1] >= 1 &&
+      parts[1] <= 31 &&
       c.index > name.length / 2 &&
       candidates.length > 1
-    ) continue;
+    )
+      continue;
     processed.push(parts);
   }
 
@@ -127,8 +130,8 @@ function listProviders(registry) {
   const maxKey = Math.max(...entries.map((e) => e.key.length));
   const maxName = Math.max(...entries.map((e) => e.name.length));
 
-  console.log(`${"PROVIDER".padEnd(maxKey)}  ${"NAME".padEnd(maxName)}  MODELS`);
-  console.log(`${"─".repeat(maxKey)}  ${"─".repeat(maxName)}  ${"─".repeat(6)}`);
+  console.log(`${'PROVIDER'.padEnd(maxKey)}  ${'NAME'.padEnd(maxName)}  MODELS`);
+  console.log(`${'─'.repeat(maxKey)}  ${'─'.repeat(maxName)}  ${'─'.repeat(6)}`);
   for (const entry of entries) {
     const modelCount = registry.providers[entry.key].models.length;
     console.log(`${entry.key.padEnd(maxKey)}  ${entry.name.padEnd(maxName)}  ${modelCount}`);
@@ -154,27 +157,27 @@ function listModels(registry, providerName) {
 
 const args = process.argv.slice(2);
 
-if (args.includes("--help") || args.length === 0) {
+if (args.includes('--help') || args.length === 0) {
   printUsage();
   process.exit(0);
 }
 
-if (args.includes("--list")) {
+if (args.includes('--list')) {
   listProviders(loadRegistry());
   process.exit(0);
 }
 
-const providerIdx = args.indexOf("--provider");
+const providerIdx = args.indexOf('--provider');
 if (providerIdx !== -1) {
   const name = args[providerIdx + 1];
   if (!name) {
-    console.error("Error: --provider requires a provider name.");
+    console.error('Error: --provider requires a provider name.');
     process.exit(1);
   }
   listModels(loadRegistry(), name);
   process.exit(0);
 }
 
-console.error("Error: Unknown arguments:", args.join(" "));
+console.error('Error: Unknown arguments:', args.join(' '));
 printUsage();
 process.exit(1);
