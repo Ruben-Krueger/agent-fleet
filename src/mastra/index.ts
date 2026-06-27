@@ -11,7 +11,7 @@ import {
 } from '@mastra/observability';
 import { weatherWorkflow } from './workflows/weather-workflow';
 import { weatherAgent } from './agents/weather-agent';
-import { travelBuddy } from './agents/travel-buddy';
+import { travelBuddy } from './agents/travel-agent';
 import {
   toolCallAppropriatenessScorer,
   completenessScorer,
