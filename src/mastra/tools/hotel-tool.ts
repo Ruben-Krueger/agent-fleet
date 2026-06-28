@@ -3,7 +3,7 @@ import nullThrows from 'capital-t-null-throws';
 import { getJson } from 'serpapi';
 import { z } from 'zod';
 
-const hotelResultSchema = z.object({
+export const hotelResultSchema = z.object({
   name: z.string(),
   type: z.string().optional(),
   pricePerNight: z.number().optional(),
@@ -64,21 +64,23 @@ const serpApiResponseSchema = z.object({
   properties: z.array(serpApiPropertySchema).optional(),
 });
 
-const searchHotels = async ({
-  location,
-  checkIn,
-  checkOut,
-  adults,
-  currency,
-  vacationRentals,
-}: {
+type HotelResults = {
   location: string;
   checkIn: string;
   checkOut: string;
   adults: number;
   currency: string;
   vacationRentals: boolean;
-}) => {
+};
+
+export const searchHotels = async ({
+  location,
+  checkIn,
+  checkOut,
+  adults,
+  currency,
+  vacationRentals,
+}: HotelResults) => {
   const apiKey = nullThrows(
     process.env.SERPAPI_API_KEY,
     'SERPAPI_API_KEY environment variable is not set',

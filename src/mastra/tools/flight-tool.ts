@@ -18,6 +18,7 @@ const FlightOfferSchema = z.object({
   totalDurationMinutes: z.number(),
   stops: z.number(),
   segments: z.array(FlightSegmentSchema),
+  bookingToken: z.string().optional(),
 });
 
 const FlightSearchResultSchema = z.object({
@@ -118,6 +119,7 @@ const searchFlights = async (input: FlightSearchInput) => {
       totalDurationMinutes: flight.total_duration,
       stops: Math.max(0, segments.length - 1),
       segments,
+      bookingToken: flight.booking_token,
     });
   };
 
