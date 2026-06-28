@@ -55,8 +55,8 @@ const serpApiPropertySchema = z.object({
   amenities: z.array(z.string()).optional(),
   check_in_time: z.string().optional(),
   check_out_time: z.string().optional(),
-  rate_per_night: z.object({ lowest: z.number().optional() }).optional(),
-  total_rate: z.object({ lowest: z.number().optional() }).optional(),
+  rate_per_night: z.object({ lowest: z.string().optional() }).optional(),
+  total_rate: z.object({ lowest: z.string().optional() }).optional(),
   link: z.string().optional(),
 });
 
@@ -102,8 +102,12 @@ const searchHotels = async ({
   const hotels = properties.map((p) => ({
     name: p.name,
     type: p.type,
-    pricePerNight: p.rate_per_night?.lowest,
-    totalPrice: p.total_rate?.lowest,
+    pricePerNight: p.rate_per_night?.lowest
+      ? parseFloat(p.rate_per_night.lowest.replace(/[^0-9.]/g, ''))
+      : undefined,
+    totalPrice: p.total_rate?.lowest
+      ? parseFloat(p.total_rate.lowest.replace(/[^0-9.]/g, ''))
+      : undefined,
     rating: p.overall_rating,
     reviews: p.reviews,
     description: p.description,

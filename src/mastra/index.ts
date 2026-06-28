@@ -10,16 +10,12 @@ import {
   SensitiveDataFilter,
 } from '@mastra/observability';
 import { travelAgent } from './agents/travel-agent';
-import {
-  toolCallAppropriatenessScorer,
-  completenessScorer,
-  translationScorer,
-} from './scorers/weather-scorer';
+
+import travelWorkflow from './workflows/travel-workflow';
 
 export const mastra = new Mastra({
-  workflows: {},
-  agents: { travelAgent, },
-  scorers: { toolCallAppropriatenessScorer, completenessScorer, translationScorer },
+  workflows: { travelWorkflow },
+  agents: { travelAgent },
   storage: new MastraCompositeStore({
     id: 'composite-storage',
     default: new LibSQLStore({

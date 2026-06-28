@@ -56,7 +56,7 @@ export const flightTool = createTool({
       .describe('Return date in YYYY-MM-DD format. Omit for one-way flights.'),
     adults: z.number().int().min(1).default(1).describe('Number of adult passengers'),
     travelClass: z
-      .enum(['economy', 'premium_economy', 'business', 'first'])
+      .enum(Object.keys(TRAVEL_CLASS_MAP) as [TravelClass, ...TravelClass[]])
       .default('economy')
       .describe('Cabin class'),
     maxStops: z
