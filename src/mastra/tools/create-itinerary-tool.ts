@@ -53,7 +53,7 @@ const HotelSearchResultSchema = z.object({
   checkOut: z.string(),
 });
 
-const ItineraryOutputSchema = z.object({
+export const ItineraryOutputSchema = z.object({
   destination: z.string(),
   destinationCountry: z.string().optional(),
   dates: z.object({
@@ -91,7 +91,84 @@ const ItineraryOutputSchema = z.object({
   }),
 });
 
-export const itineraryTool = createTool({
+export const buildItinerary = async (input: {
+  destination: string;
+  destinationCountry?: string;
+  outboundDate: string;
+  returnDate?: string;
+  flightResults: z.infer<typeof FlightSearchResultSchema>;
+  hotelResults: z.infer<typeof HotelSearchResultSchema>;
+  adults?: number;
+  currency?: string;
+}): Promise<z.infer<typeof ItineraryOutputSchema>> => {
+  const { destination, destinationCountry, outboundDate, returnDate, flightResults, hotelResults } =
+    input;
+  const adults = input.adults ?? 1;
+  const currency = input.currency ?? 'USD';
+
+  const allFlights = [...flightResults.bestFlights, ...flightResults.otherFlights];
+  const selectedFlight = allFlights.sort((a, b) => a.price - b.price)[0];
+  if (!selectedFlight) throw new Error('No flights found in the provided flight results');
+
+  const topHotels = [...hotelResults.hotels]
+    .filter((h) => h.totalPrice != null)
+    .sort((a, b) => (a.totalPrice ?? Infinity) - (b.totalPrice ?? Infinity))
+    .slice(0, 3);
+
+  const MS_PER_DAY = 1000 * 60 * 60 * 24;
+  const nights =
+    hotelResults.checkIn && hotelResults.checkOut
+      ? Math.round(
+          (+new Date(hotelResults.checkOut) - +new Date(hotelResults.checkIn)) / MS_PER_DAY,
+        )
+      : undefined;
+
+  const airline = selectedFlight.segments[0]?.airline;
+  const originCode = selectedFlight.segments[0]?.departureAirport;
+  const destCode = selectedFlight.segments[selectedFlight.segments.length - 1]?.arrivalAirport;
+  const bookingUrl = selectedFlight.bookingToken
+    ? `https://www.google.com/flights?booking_token=${selectedFlight.bookingToken}`
+    : originCode && destCode
+      ? `https://www.google.com/flights#flt=${originCode}.${destCode}.${outboundDate}${returnDate ? `*${destCode}.${originCode}.${returnDate}` : ''};c:${currency};e:1;sd:1;t:f`
+      : undefined;
+
+  const flightSubtotal = selectedFlight.price * adults;
+  const cheapestHotelSubtotal = topHotels[0]?.totalPrice;
+
+  return {
+    destination,
+    destinationCountry,
+    dates: { outbound: outboundDate, return: returnDate, nights },
+    flight: {
+      pricePerPerson: selectedFlight.price,
+      totalFlightCost: flightSubtotal,
+      durationMinutes: selectedFlight.totalDurationMinutes,
+      stops: selectedFlight.stops,
+      airline,
+      segments: selectedFlight.segments,
+      bookingUrl,
+    },
+    hotels: topHotels.map((h) => ({
+      name: h.name,
+      rating: h.rating,
+      checkIn: hotelResults.checkIn,
+      checkOut: hotelResults.checkOut,
+      pricePerNight: h.pricePerNight,
+      totalPrice: h.totalPrice,
+      amenities: h.amenities,
+      link: h.link,
+    })),
+    costs: {
+      flightSubtotal,
+      cheapestHotelSubtotal,
+      cheapestTotal: flightSubtotal + (cheapestHotelSubtotal ?? 0),
+      currency,
+      adults,
+    },
+  };
+};
+
+export const createItineraryTool = createTool({
   id: 'build-itinerary',
   description:
     'Combine flight and hotel search results into a complete vacation itinerary with itemized and total cost estimates. Call this after using search-flights and get-hotels to assemble a final trip plan.',
@@ -106,80 +183,5 @@ export const itineraryTool = createTool({
     currency: z.string().default('USD').describe('Currency code for cost display'),
   }),
   outputSchema: ItineraryOutputSchema,
-  execute: async ({
-    destination,
-    destinationCountry,
-    outboundDate,
-    returnDate,
-    flightResults,
-    hotelResults,
-    adults,
-    currency,
-  }) => {
-    // Pick cheapest available flight (bestFlights first, then otherFlights)
-    const allFlights = [...flightResults.bestFlights, ...flightResults.otherFlights];
-    const selectedFlight = allFlights.sort((a, b) => a.price - b.price)[0];
-    if (!selectedFlight) throw new Error('No flights found in the provided flight results');
-
-    // Pick 3 cheapest hotels by total price
-    const topHotels = [...hotelResults.hotels]
-      .filter((h) => h.totalPrice != null)
-      .sort((a, b) => (a.totalPrice ?? Infinity) - (b.totalPrice ?? Infinity))
-      .slice(0, 3);
-
-    // Nights between hotel check-in and check-out dates
-    const MS_PER_DAY = 1000 * 60 * 60 * 24;
-    const nights =
-      hotelResults.checkIn && hotelResults.checkOut
-        ? Math.round((+new Date(hotelResults.checkOut) - +new Date(hotelResults.checkIn)) / MS_PER_DAY)
-        : undefined;
-
-    const airline = selectedFlight.segments[0]?.airline;
-    const originCode = selectedFlight.segments[0]?.departureAirport;
-    const destCode = selectedFlight.segments[selectedFlight.segments.length - 1]?.arrivalAirport;
-    const bookingUrl = selectedFlight.bookingToken
-      ? `https://www.google.com/flights?booking_token=${selectedFlight.bookingToken}`
-      : originCode && destCode
-        ? `https://www.google.com/flights#flt=${originCode}.${destCode}.${outboundDate}${returnDate ? `*${destCode}.${originCode}.${returnDate}` : ''};c:${currency ?? 'USD'};e:1;sd:1;t:f`
-        : undefined;
-    const resolvedAdults = adults ?? 1;
-    const flightSubtotal = selectedFlight.price * resolvedAdults;
-    const cheapestHotelSubtotal = topHotels[0]?.totalPrice;
-
-    return {
-      destination,
-      destinationCountry,
-      dates: {
-        outbound: outboundDate,
-        return: returnDate,
-        nights,
-      },
-      flight: {
-        pricePerPerson: selectedFlight.price,
-        totalFlightCost: flightSubtotal,
-        durationMinutes: selectedFlight.totalDurationMinutes,
-        stops: selectedFlight.stops,
-        airline,
-        segments: selectedFlight.segments,
-        bookingUrl,
-      },
-      hotels: topHotels.map((h) => ({
-        name: h.name,
-        rating: h.rating,
-        checkIn: hotelResults.checkIn,
-        checkOut: hotelResults.checkOut,
-        pricePerNight: h.pricePerNight,
-        totalPrice: h.totalPrice,
-        amenities: h.amenities,
-        link: h.link,
-      })),
-      costs: {
-        flightSubtotal,
-        cheapestHotelSubtotal,
-        cheapestTotal: flightSubtotal + (cheapestHotelSubtotal ?? 0),
-        currency: currency ?? 'USD',
-        adults: resolvedAdults,
-      },
-    };
-  },
+  execute: async (input) => buildItinerary(input),
 });

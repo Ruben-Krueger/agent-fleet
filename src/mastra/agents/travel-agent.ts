@@ -4,7 +4,8 @@ import { flightTool } from '../tools/flight-tool';
 import { flightDealsTool } from '../tools/flight-deals-tool';
 import { hotelTool } from '../tools/hotel-tool';
 import { airportTool } from '../tools/airport-tool';
-import { itineraryTool } from '../tools/itinerary-tool';
+import { createItineraryTool } from '../tools/create-itinerary-tool';
+import { sendItineraryTool } from '../tools/send-itinerary-tool';
 
 export const travelAgent = new Agent({
   id: 'travel-buddy',
@@ -18,6 +19,6 @@ Your primary function is to help users find affordable flights and hotels. When 
 - Always ask for a starting location if not provided
 - Ask for travel dates if the user has specific ones; otherwise use flightDealsTool which handles flexible dates automatically`,
   model: 'anthropic/claude-sonnet-4-5',
-  tools: { flightTool, flightDealsTool, hotelTool, airportTool, itineraryTool },
+  tools: { flightTool, flightDealsTool, hotelTool, airportTool, createItineraryTool, sendItineraryTool },
   memory: new Memory(),
 });

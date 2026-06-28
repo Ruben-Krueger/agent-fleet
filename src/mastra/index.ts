@@ -12,10 +12,16 @@ import {
 import { travelAgent } from './agents/travel-agent';
 
 import travelWorkflow from './workflows/travel-workflow';
+import { flightDealsTool } from './tools/flight-deals-tool';
+import { airportTool } from './tools/airport-tool';
+import { flightTool } from './tools/flight-tool';
+import { hotelTool } from './tools/hotel-tool';
+import { sendItineraryTool } from './tools/send-itinerary-tool';
 
 export const mastra = new Mastra({
   workflows: { travelWorkflow },
   agents: { travelAgent },
+  tools: { flightDealsTool, airportTool, flightTool, hotelTool, sendItineraryTool },
   storage: new MastraCompositeStore({
     id: 'composite-storage',
     default: new LibSQLStore({

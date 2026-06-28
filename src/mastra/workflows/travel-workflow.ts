@@ -3,7 +3,9 @@ import { createRequire } from 'module';
 import { z } from 'zod';
 import { FlightDealSchema, discoverFlightDeals } from '../tools/flight-deals-tool';
 import { hotelResultSchema, searchHotels } from '../tools/hotel-tool';
-import { ItinerarySchema, REGION_ALIASES } from '../types';
+import { buildItinerary, ItineraryOutputSchema } from '../tools/create-itinerary-tool';
+import { sendItinerary } from '../tools/send-itinerary-tool';
+import { REGION_ALIASES } from '../types';
 
 const require = createRequire(import.meta.url);
 const airportData = require('airport-codes/airports.json') as Array<{
@@ -129,51 +131,83 @@ const buildItinerariesStep = createStep({
     originCity: z.string(),
   }),
   outputSchema: z.object({
-    itineraries: z.array(ItinerarySchema),
+    itineraries: z.array(ItineraryOutputSchema),
     originCity: z.string(),
   }),
   execute: async ({ inputData }) => {
-    const itineraries = inputData.dealsWithHotels
-      .map(({ deal, hotels }) => {
-        const sorted = [...hotels].sort((a, b) => (a.totalPrice ?? 0) - (b.totalPrice ?? 0));
-        const budget = sorted[0];
-        const midRange =
-          sorted.length > 1 ? sorted[Math.floor((sorted.length - 1) / 2)] : undefined;
-        const luxury = sorted.length > 1 ? sorted[sorted.length - 1] : undefined;
-
-        const toOption = (h: typeof budget | undefined) =>
-          h
-            ? {
-                name: h.name,
-                rating: h.rating,
-                pricePerNight: h.pricePerNight,
-                totalPrice: h.totalPrice,
-                link: h.link,
-              }
-            : undefined;
-
-        return {
+    const itineraries = await Promise.all(
+      inputData.dealsWithHotels.map(({ deal, hotels, checkIn, checkOut }) =>
+        buildItinerary({
           destination: deal.destinationName,
           destinationCountry: deal.destinationCountry,
-          arrivalAirportCode: deal.arrivalAirportCode,
-          flightPrice: deal.price,
-          flightAirline: deal.airline,
-          flightDurationMinutes: deal.flightDurationMinutes,
-          stops: deal.stops,
-          startDate: deal.outboundDate,
-          endDate: deal.returnDate,
-          flightLink: deal.flightLink,
-          hotels: {
-            budget: toOption(budget),
-            midRange: toOption(midRange),
-            luxury: toOption(luxury),
+          outboundDate: checkIn,
+          returnDate: checkOut,
+          adults: 1,
+          currency: 'USD',
+          flightResults: {
+            bestFlights: [
+              {
+                price: deal.price,
+                totalDurationMinutes: deal.flightDurationMinutes ?? 0,
+                stops: deal.stops ?? 0,
+                segments: [
+                  {
+                    airline: deal.airline ?? '',
+                    flightNumber: '',
+                    departure: checkIn,
+                    arrival: checkOut,
+                    departureAirport: deal.departureAirportCode,
+                    arrivalAirport: deal.arrivalAirportCode,
+                    durationMinutes: deal.flightDurationMinutes ?? 0,
+                  },
+                ],
+              },
+            ],
+            otherFlights: [],
           },
-          totalCost: deal.price + (budget?.totalPrice ?? 0),
-        };
-      })
-      .sort((a, b) => a.totalCost - b.totalCost);
+          hotelResults: {
+            hotels,
+            location: deal.destinationName,
+            checkIn,
+            checkOut,
+          },
+        }),
+      ),
+    );
 
-    return { itineraries, originCity: inputData.originCity };
+    return {
+      itineraries: itineraries.sort(
+        (a: z.infer<typeof ItineraryOutputSchema>, b: z.infer<typeof ItineraryOutputSchema>) =>
+          a.costs.cheapestTotal - b.costs.cheapestTotal,
+      ),
+      originCity: inputData.originCity,
+    };
+  },
+});
+
+// ── Step 5: Optionally email the top itinerary ────────────────────────────
+
+type WorkflowInitData = { start: string; sendEmail?: boolean; emailAddress?: string };
+
+const sendItineraryStep = createStep({
+  id: 'send-itinerary',
+  inputSchema: z.object({
+    itineraries: z.array(ItineraryOutputSchema),
+    originCity: z.string(),
+  }),
+  outputSchema: z.object({
+    itineraries: z.array(ItineraryOutputSchema),
+    originCity: z.string(),
+  }),
+  execute: async ({ inputData, getInitData }) => {
+    const { sendEmail, emailAddress } = getInitData<WorkflowInitData>();
+    const top = inputData.itineraries[0];
+
+    if (sendEmail && emailAddress && top) {
+      await sendItinerary({ address: emailAddress, itinerary: top });
+    }
+
+    return { itineraries: inputData.itineraries, originCity: inputData.originCity };
   },
 });
 
@@ -182,9 +216,11 @@ const travelWorkflow = createWorkflow({
   description: 'Find affordable vacations',
   inputSchema: z.object({
     start: z.string().describe('Starting city, region, or IATA airport code'),
+    sendEmail: z.boolean().default(false).describe('Email the top itinerary'),
+    emailAddress: z.string().optional().describe('Recipient email address'),
   }),
   outputSchema: z.object({
-    itineraries: z.array(ItinerarySchema),
+    itineraries: z.array(ItineraryOutputSchema),
     originCity: z.string(),
   }),
 })
@@ -192,6 +228,7 @@ const travelWorkflow = createWorkflow({
   .then(discoverDealsStep)
   .then(searchHotelsStep)
   .then(buildItinerariesStep)
+  .then(sendItineraryStep)
   .commit();
 
 export default travelWorkflow;
