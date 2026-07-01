@@ -19,6 +19,7 @@ import { flightTool } from './tools/flight-tool';
 import { hotelTool } from './tools/hotel-tool';
 import { sendItineraryTool } from './tools/send-itinerary-tool';
 import { webSearchTool } from './tools/web-search-tool';
+import { saveResearchReportTool } from './tools/save-research-report-tool';
 import { ceoAgent } from './agents/ceo-agent';
 import {
   ideaScoringCriteriaScorer,
@@ -27,10 +28,19 @@ import {
   phaseAwarenessScorer,
 } from './scorers/ceo-scorers';
 import { engineerAgent } from './agents/engineer-agent';
+import { createGithubRepoTool } from './tools/create-github-repo-tool';
+import { scaffoldProjectTool } from './tools/scaffold-project-tool';
+import { installPackagesTool } from './tools/install-packages-tool';
+import { writeFileTool } from './tools/write-file-tool';
+import { landingPageAgent } from './agents/landing-page-agent';
+import { generateLandingPageTool } from './tools/generate-landing-page-tool';
+import { generateSignupApiTool } from './tools/generate-signup-api-tool';
+import { deployLandingPageTool } from './tools/deploy-landing-page-tool';
+import { readSignupsTool } from './tools/read-signups-tool';
 
 export const mastra = new Mastra({
   workflows: { travelWorkflow },
-  agents: { travelAgent, ceoAgent, marketResearchAgent, engineerAgent },
+  agents: { travelAgent, ceoAgent, marketResearchAgent, engineerAgent, landingPageAgent },
   tools: {
     flightDealsTool,
     airportTool,
@@ -38,6 +48,15 @@ export const mastra = new Mastra({
     hotelTool,
     sendItineraryTool,
     webSearchTool,
+    saveResearchReportTool,
+    createGithubRepoTool,
+    scaffoldProjectTool,
+    installPackagesTool,
+    writeFileTool,
+    generateLandingPageTool,
+    generateSignupApiTool,
+    deployLandingPageTool,
+    readSignupsTool,
   },
   scorers: {
     ideaScoringCriteriaScorer,

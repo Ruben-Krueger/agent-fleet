@@ -8,6 +8,7 @@ import {
   phaseAwarenessScorer,
 } from '../scorers/ceo-scorers';
 import { engineerAgent } from './engineer-agent';
+import { landingPageAgent } from './landing-page-agent';
 
 export const ceoAgent = new Agent({
   id: 'ceo',
@@ -17,7 +18,7 @@ export const ceoAgent = new Agent({
   model: 'anthropic/claude-sonnet-4-6',
   memory: new Memory(),
   tools: {},
-  agents: { marketResearchAgent, engineerAgent },
+  agents: { marketResearchAgent, engineerAgent, landingPageAgent },
   scorers: {
     ideaScoringCriteria: {
       scorer: ideaScoringCriteriaScorer,
@@ -67,9 +68,10 @@ When starting a new project, guide the process through these steps:
 
 Before building, validate the selected idea:
 
-1. Delegate to the Research Agent to find 10+ potential customers (communities, job boards, LinkedIn, Twitter)
-2. Draft a landing page copy and a cold outreach message to test demand
-3. Define a "validation threshold" (e.g., 3 people express intent to pay) before greenlighting the build
+1. Delegate to the Market Research Agent to find 10+ potential customers (communities, job boards, LinkedIn, Twitter)
+2. Define a "validation threshold" (e.g., 3 signups indicating intent to pay) before greenlighting the build
+3. Delegate to the Landing Page Agent to write copy, generate a live landing page with an email signup form, and (with your explicit approval) deploy it — this is how demand actually gets tested, not a written pitch
+4. Draft a cold outreach message pointing potential customers at the live page
 
 ## Phase 3: Planning the Build
 

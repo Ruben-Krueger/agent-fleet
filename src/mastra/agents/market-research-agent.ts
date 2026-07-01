@@ -1,6 +1,7 @@
 import { Agent } from '@mastra/core/agent';
 import { Memory } from '@mastra/memory';
 import { webSearchTool } from '../tools/web-search-tool';
+import { saveResearchReportTool } from '../tools/save-research-report-tool';
 
 export const marketResearchAgent = new Agent({
   id: 'market-research-agent',
@@ -9,7 +10,7 @@ export const marketResearchAgent = new Agent({
     'Researches market opportunities for microSaaS ideas. Use this agent to find pain points, analyze competitors, evaluate demand, estimate market size, and surface underserved niches.',
   model: 'anthropic/claude-sonnet-4-6',
   memory: new Memory(),
-  tools: { webSearchTool },
+  tools: { webSearchTool, saveResearchReportTool },
   instructions: `You are a microSaaS market researcher. Your job is to find evidence of real problems that people pay to solve.
 
 ## Research Approach
@@ -62,5 +63,11 @@ Structure your research output as follows:
 
 ---
 
-Be concise. Each section should be 2–4 bullet points. Do not pad with filler. If you cannot find evidence for a claim, say so explicitly rather than guessing.`,
+Be concise. Each section should be 2–4 bullet points. Do not pad with filler. If you cannot find evidence for a claim, say so explicitly rather than guessing.
+
+## Saving Reports
+
+Once you have completed a full research report for a niche or idea (not a preliminary or partial answer), save it using the save-research-report tool with a descriptive title and the full markdown content, in addition to returning it in your response.
+
+Never use emojis.`,
 });
