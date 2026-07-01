@@ -70,12 +70,12 @@ Return JSON:
 `,
   })
   .generateScore(({ results }) => {
-    const r = (results as any)?.analyzeStepResult || {};
+    const r = results?.analyzeStepResult || {};
     if (!r.isRankingIdeas) return 1;
     return (r.criteriaCount ?? 0) / 5;
   })
   .generateReason(({ results, score }) => {
-    const r = (results as any)?.analyzeStepResult || {};
+    const r = results?.analyzeStepResult || {};
     if (!r.isRankingIdeas) return 'CEO was not ranking ideas — scorer not applicable.';
     const missing = [
       !r.hasWillingnessToPay && 'willingness to pay',
@@ -146,13 +146,13 @@ Return JSON:
 `,
   })
   .generateScore(({ results }) => {
-    const r = (results as any)?.analyzeStepResult || {};
+    const r = results?.analyzeStepResult || {};
     if (!r.hasDelegation) return 1;
     if (r.isVague) return 0.2;
     return ((r.hasOutputFormat ? 1 : 0) + (r.hasAcceptanceCriteria ? 1 : 0)) / 2;
   })
   .generateReason(({ results, score }) => {
-    const r = (results as any)?.analyzeStepResult || {};
+    const r = results?.analyzeStepResult || {};
     if (!r.hasDelegation) return 'No delegation found — scorer not applicable.';
     return `Delegation to [${(r.agentsDelegatedTo || []).join(', ')}]: outputFormat=${r.hasOutputFormat}, acceptanceCriteria=${r.hasAcceptanceCriteria}, vague=${r.isVague}. Score=${score}. ${r.explanation ?? ''}`;
   });
@@ -220,7 +220,7 @@ Return JSON:
 `,
   })
   .generateScore(({ results }) => {
-    const r = (results as any)?.analyzeStepResult || {};
+    const r = results?.analyzeStepResult || {};
     if (!r.isPlanningBuild) return 1;
 
     let score = 0;
@@ -257,7 +257,8 @@ Return JSON:
 export const phaseAwarenessScorer = createScorer({
   id: 'phase-awareness',
   name: 'Phase Awareness',
-  description: 'Checks that the CEO explicitly states its current phase (1–4) early in each response',
+  description:
+    'Checks that the CEO explicitly states its current phase (1–4) early in each response',
   type: 'agent',
   judge: {
     model: 'anthropic/claude-sonnet-4-6',
@@ -303,12 +304,12 @@ Return JSON:
 `,
   })
   .generateScore(({ results }) => {
-    const r = (results as any)?.analyzeStepResult || {};
+    const r = results?.analyzeStepResult;
     if (!r.phaseStated) return 0;
     return r.statedEarly ? 1 : 0.5;
   })
   .generateReason(({ results, score }) => {
-    const r = (results as any)?.analyzeStepResult || {};
+    const r = results.analyzeStepResult || {};
     return `Phase awareness: stated=${r.phaseStated}, phase=${r.phaseNumber ?? 'none'}, early=${r.statedEarly}. Score=${score}. ${r.explanation ?? ''}`;
   });
 

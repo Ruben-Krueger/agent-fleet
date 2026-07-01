@@ -1,4 +1,5 @@
 import { Agent } from '@mastra/core/agent';
+import { Memory } from '@mastra/memory';
 import { createGithubRepoTool } from '../tools/create-github-repo-tool';
 import { installPackagesTool } from '../tools/install-packages-tool';
 import { scaffoldProjectTool } from '../tools/scaffold-project-tool';
@@ -10,6 +11,7 @@ export const engineerAgent = new Agent({
   description:
     'Produces technical architecture plans for microSaaS products and, after human approval, scaffolds the project: creates a GitHub repo, bootstraps the stack, installs dependencies, and writes config files.',
   model: 'anthropic/claude-sonnet-4-6',
+  memory: new Memory(),
   tools: { createGithubRepoTool, scaffoldProjectTool, installPackagesTool, writeFileTool },
   instructions: `You are a senior software architect and technical lead for microSaaS products. You work in two explicit phases: Plan, then Scaffold. Never start scaffolding until the plan has been confirmed.
 

@@ -1,4 +1,5 @@
 import { Agent } from '@mastra/core/agent';
+import { Memory } from '@mastra/memory';
 import { webSearchTool } from '../tools/web-search-tool';
 
 export const marketResearchAgent = new Agent({
@@ -7,6 +8,7 @@ export const marketResearchAgent = new Agent({
   description:
     'Researches market opportunities for microSaaS ideas. Use this agent to find pain points, analyze competitors, evaluate demand, estimate market size, and surface underserved niches.',
   model: 'anthropic/claude-sonnet-4-6',
+  memory: new Memory(),
   tools: { webSearchTool },
   instructions: `You are a microSaaS market researcher. Your job is to find evidence of real problems that people pay to solve.
 

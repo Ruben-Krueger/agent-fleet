@@ -20,11 +20,31 @@ import { hotelTool } from './tools/hotel-tool';
 import { sendItineraryTool } from './tools/send-itinerary-tool';
 import { webSearchTool } from './tools/web-search-tool';
 import { ceoAgent } from './agents/ceo-agent';
+import {
+  ideaScoringCriteriaScorer,
+  delegationSpecificityScorer,
+  mvpDisciplineScorer,
+  phaseAwarenessScorer,
+} from './scorers/ceo-scorers';
+import { engineerAgent } from './agents/engineer-agent';
 
 export const mastra = new Mastra({
   workflows: { travelWorkflow },
-  agents: { travelAgent, ceoAgent, marketResearchAgent },
-  tools: { flightDealsTool, airportTool, flightTool, hotelTool, sendItineraryTool, webSearchTool },
+  agents: { travelAgent, ceoAgent, marketResearchAgent, engineerAgent },
+  tools: {
+    flightDealsTool,
+    airportTool,
+    flightTool,
+    hotelTool,
+    sendItineraryTool,
+    webSearchTool,
+  },
+  scorers: {
+    ideaScoringCriteriaScorer,
+    delegationSpecificityScorer,
+    mvpDisciplineScorer,
+    phaseAwarenessScorer,
+  },
   storage: new MastraCompositeStore({
     id: 'composite-storage',
     default: new LibSQLStore({

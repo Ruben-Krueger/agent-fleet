@@ -1,15 +1,41 @@
 import { Agent } from '@mastra/core/agent';
 import { Memory } from '@mastra/memory';
 import { marketResearchAgent } from './market-research-agent';
+import {
+  ideaScoringCriteriaScorer,
+  delegationSpecificityScorer,
+  mvpDisciplineScorer,
+  phaseAwarenessScorer,
+} from '../scorers/ceo-scorers';
+import { engineerAgent } from './engineer-agent';
 
 export const ceoAgent = new Agent({
   id: 'ceo',
   name: 'CEO',
-  description: 'Orchestrates the full microSaaS lifecycle: idea discovery, validation, planning, and build coordination.',
+  description:
+    'Orchestrates the full microSaaS lifecycle: idea discovery, validation, planning, and build coordination.',
   model: 'anthropic/claude-sonnet-4-6',
   memory: new Memory(),
   tools: {},
-  agents: { marketResearchAgent },
+  agents: { marketResearchAgent, engineerAgent },
+  scorers: {
+    ideaScoringCriteria: {
+      scorer: ideaScoringCriteriaScorer,
+      sampling: { type: 'ratio', rate: 0.1 },
+    },
+    delegationSpecificity: {
+      scorer: delegationSpecificityScorer,
+      sampling: { type: 'ratio', rate: 0.1 },
+    },
+    mvpDiscipline: {
+      scorer: mvpDisciplineScorer,
+      sampling: { type: 'ratio', rate: 0.1 },
+    },
+    phaseAwareness: {
+      scorer: phaseAwarenessScorer,
+      sampling: { type: 'ratio', rate: 0.1 },
+    },
+  },
   instructions: `You are a startup CEO specializing in discovering and building microSaaS products. Your job is to identify a high-potential microSaaS idea and orchestrate a team of specialized agents to bring it to life.
 
 ## Your Role
