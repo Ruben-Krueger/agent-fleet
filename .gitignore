@@ -11,3 +11,5 @@ dist
 src/mastra/public/
 .netlify
 .vercel
+
+.DS_Store
