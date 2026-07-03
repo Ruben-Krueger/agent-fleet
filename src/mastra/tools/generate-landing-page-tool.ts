@@ -1,7 +1,9 @@
 import { createTool } from '@mastra/core/tools';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { isAbsolute, join, normalize, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { z } from 'zod';
+
+const LANDING_PAGES_DIR = 'landing-pages';
 
 const escapeHtml = (value: string) =>
   value
@@ -16,9 +18,12 @@ export const generateLandingPageTool = createTool({
     'Generates a self-contained static landing page (index.html) with a hero, value props, and an email signup form that POSTs to /api/signup. Used to validate demand for a microSaaS idea before committing to a full build.',
   requireApproval: true,
   inputSchema: z.object({
-    projectDir: z
+    ideaSlug: z
       .string()
-      .describe('Absolute path to the landing page project directory (created if missing)'),
+      .regex(/^[a-z0-9-]+$/, 'ideaSlug must be lowercase letters, numbers, and hyphens only')
+      .describe(
+        `URL-safe slug for the idea (e.g. "appealmd-therapists"), used as the folder name under ${LANDING_PAGES_DIR}/. Use the same slug across generate-landing-page, generate-signup-api, deploy-landing-page, and read-signups so they operate on the same project.`,
+      ),
     ideaName: z.string().describe('Short name of the idea, used as the page title'),
     headline: z.string().describe('Main hero headline, one sentence'),
     subheadline: z.string().describe('Supporting sentence under the headline'),
@@ -40,7 +45,7 @@ export const generateLandingPageTool = createTool({
     writtenPath: z.string(),
   }),
   execute: async ({
-    projectDir,
+    ideaSlug,
     ideaName,
     headline,
     subheadline,
@@ -49,13 +54,8 @@ export const generateLandingPageTool = createTool({
     ctaText,
     socialProof,
   }) => {
-    if (!isAbsolute(projectDir)) throw new Error('projectDir must be an absolute path');
-
-    const resolvedTarget = resolve(projectDir, 'index.html');
-    const normalizedRoot = normalize(projectDir);
-    if (!resolvedTarget.startsWith(normalizedRoot + '/') && resolvedTarget !== join(normalizedRoot, 'index.html')) {
-      throw new Error('Resolved path escapes the project root');
-    }
+    const projectDir = resolve('/tmp', LANDING_PAGES_DIR, ideaSlug);
+    const resolvedTarget = join(projectDir, 'index.html');
 
     const valuePropsHtml = valueProps
       .map((prop) => `          <li>${escapeHtml(prop)}</li>`)
@@ -182,7 +182,7 @@ ${valuePropsHtml}
 </html>
 `;
 
-    await mkdir(normalizedRoot, { recursive: true });
+    await mkdir(projectDir, { recursive: true });
     await writeFile(resolvedTarget, html, 'utf8');
 
     return { writtenPath: resolvedTarget };

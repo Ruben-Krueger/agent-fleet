@@ -1,7 +1,9 @@
 import { createTool } from '@mastra/core/tools';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { isAbsolute, join, normalize } from 'node:path';
+import { join, resolve } from 'node:path';
 import { z } from 'zod';
+
+const LANDING_PAGES_DIR = 'landing-pages';
 
 export const generateSignupApiTool = createTool({
   id: 'generate-signup-api',
@@ -9,22 +11,21 @@ export const generateSignupApiTool = createTool({
     'Generates a Vercel serverless function (api/signup.js) that captures landing page signups: logs each submission, persists it to a local JSON file during local dev, and optionally forwards it to a webhook URL in production. Also writes .env.example documenting the webhook variable.',
   requireApproval: true,
   inputSchema: z.object({
-    projectDir: z
+    ideaSlug: z
       .string()
-      .describe('Absolute path to the landing page project directory (same one passed to generate-landing-page)'),
+      .regex(/^[a-z0-9-]+$/, 'ideaSlug must be lowercase letters, numbers, and hyphens only')
+      .describe('Same slug passed to generate-landing-page, identifying the project folder under landing-pages/'),
     ideaName: z.string().describe('Short name of the idea, used as the fallback label for signups'),
   }),
   outputSchema: z.object({
     apiPath: z.string(),
     envExamplePath: z.string(),
   }),
-  execute: async ({ projectDir, ideaName }) => {
-    if (!isAbsolute(projectDir)) throw new Error('projectDir must be an absolute path');
-
-    const normalizedRoot = normalize(projectDir);
-    const apiDir = join(normalizedRoot, 'api');
+  execute: async ({ ideaSlug, ideaName }) => {
+    const projectDir = resolve('/tmp', LANDING_PAGES_DIR, ideaSlug);
+    const apiDir = join(projectDir, 'api');
     const apiPath = join(apiDir, 'signup.js');
-    const envExamplePath = join(normalizedRoot, '.env.example');
+    const envExamplePath = join(projectDir, '.env.example');
 
     const signupJs = `const EMAIL_RE = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
 

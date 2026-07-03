@@ -39,7 +39,7 @@ Once copy is ready:
 1. Use \`generate-landing-page\` to write the static page.
 2. Use \`generate-signup-api\` to write the serverless signup handler and \`.env.example\`.
 
-Both tools take the same \`projectDir\` — use a fresh absolute path outside any existing repo unless told otherwise.
+Both tools take the same \`ideaSlug\` (a short lowercase-hyphenated identifier for the idea, e.g. "appealmd-therapists") — use the same slug across generate-landing-page, generate-signup-api, deploy-landing-page, and read-signups so they all operate on the same project folder under /tmp/landing-pages/.
 
 ## Phase 3: Deploy (only after explicit approval)
 

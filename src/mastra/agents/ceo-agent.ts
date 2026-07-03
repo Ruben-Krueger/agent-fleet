@@ -66,7 +66,7 @@ When starting a new project, guide the process through these steps:
 
 ## Phase 2: Validation
 
-Before building, validate the selected idea:
+Before building, validate the selected idea. Run these steps one at a time: delegate to a single agent, wait for its complete result, and only then delegate to the next. Never delegate to more than one agent in the same turn — several Landing Page Agent tools require your explicit approval, and pausing for approval while another delegation is still in flight can hang the run.
 
 1. Delegate to the Market Research Agent to find 10+ potential customers (communities, job boards, LinkedIn, Twitter)
 2. Define a "validation threshold" (e.g., 3 signups indicating intent to pay) before greenlighting the build

@@ -1,14 +1,19 @@
 import { createTool } from '@mastra/core/tools';
 import { readFile } from 'node:fs/promises';
-import { isAbsolute, join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { z } from 'zod';
+
+const LANDING_PAGES_DIR = 'landing-pages';
 
 export const readSignupsTool = createTool({
   id: 'read-signups',
   description:
     'Reads the local data/signups.json file captured by the signup API during local dev (via `vercel dev`), so the agent can report signup counts against a validation threshold.',
   inputSchema: z.object({
-    projectDir: z.string().describe('Absolute path to the landing page project directory'),
+    ideaSlug: z
+      .string()
+      .regex(/^[a-z0-9-]+$/, 'ideaSlug must be lowercase letters, numbers, and hyphens only')
+      .describe('Same slug passed to generate-landing-page, identifying the project folder under landing-pages/'),
   }),
   outputSchema: z.object({
     count: z.number(),
@@ -20,9 +25,8 @@ export const readSignupsTool = createTool({
       }),
     ),
   }),
-  execute: async ({ projectDir }) => {
-    if (!isAbsolute(projectDir)) throw new Error('projectDir must be an absolute path');
-
+  execute: async ({ ideaSlug }) => {
+    const projectDir = resolve('/tmp', LANDING_PAGES_DIR, ideaSlug);
     const dataFile = join(projectDir, 'data', 'signups.json');
     try {
       const raw = await readFile(dataFile, 'utf8');
